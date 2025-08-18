@@ -243,7 +243,7 @@ class PosSession(models.Model):
     _inherit = "pos.session"
 
     session_payments = fields.One2many(
-        "account.payment",
+        "account.bank.statement",
         "pos_session_id",
         string="Invoice Payments",
         help="Show invoices paid in the Session",
@@ -255,14 +255,15 @@ class PosSession(models.Model):
     def _compute_session_invoices_total(self):
          for rec in self:
             rec.session_invoices_total = sum(
-                rec.session_payments.mapped("invoice_ids").mapped("amount_total") + [0]
+                rec.session_payments.mapped("move_line_ids").mapped("move_id").mapped("amount_total") + [0]
             )
 
     def action_invoice_payments(self):
-        payments = self.env["account.payment"].search(
+        ## relacionado con odoo/addons/account/models/account_bank_statement.py [fast_counterpart_creation]
+        payments = self.env["account.bank.statement"].search(
             [("pos_session_id", "in", self.ids)]
         )
-        invoices = payments.mapped("invoice_ids").ids
+        invoices = payments.mapped("move_line_ids").mapped("move_id").ids
         domain = [("id", "in", invoices)]
         return {
             "name": _("Invoice Payments"),
