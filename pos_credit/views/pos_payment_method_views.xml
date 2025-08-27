@@ -1,10 +1,4 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!--Copyright 2017 Ivan Yelizariev <https://it-projects.info/team/yelizariev>
-    Copyright 2017 Artyom Losev <https://github.com/ArtyomLosev>
-    Copyright 2017 Dinar Gabbasov <https://it-projects.info/team/GabbasovDinar>
-    Copyright 2018 Kolushov Alexandr <https://it-projects.info/team/KolushovAlexandr>
-    Copyright 2020 Almas Giniatullin <https://it-projects.info/team/almas50>
-    License MIT (https://opensource.org/licenses/MIT). -->
 <odoo>
     <record model="ir.ui.view" id="pos_payment_method_view_form_inherit_pos_credit">
         <field name="name">pos.payment.method.form.inherit</field>
@@ -23,8 +17,7 @@
             </xpath>
 
             <xpath expr="//field[@name='cash_journal_id']" position="attributes">
-                <!-- <field name="receivable_account_id" groups="account.group_account_user" attrs="{'invisible': [('split_transactions', '=', True)]}"/> -->
-                <attribute name="attrs">{'required': [('split_transactions', '=', False)]}</attribute>
+                <attribute name="attrs">{'required': [('type', '!=', 'pay_later')]}</attribute>
             </xpath>
 
             <xpath expr="//form/sheet/group[@name='Payment methods']" position="inside">                
@@ -46,7 +39,8 @@
                 <group attrs="{'invisible': [('hide_use_payment_terminal', '=', True)]}" >
                      <field name="use_payment_terminal"/>
                 </group>                
-            </xpath>                    
+            </xpath>
+
         </field>
     </record>
 
@@ -59,7 +53,6 @@
                 <!--<field name="type" invisible="1"/>-->
                 <field name="type" />
                 <field name="cash_journal_id" attrs="{'required': [('split_transactions', '=', False)]}" />
-                <field name="outstanding_account_id" groups="account.group_account_readonly" optional="hide" attrs="{'invisible': [('type', '!=', 'bank')]}" />
                 <field name="receivable_account_id" groups="account.group_account_readonly"  optional="hide" attrs="{'invisible': [('split_transactions', '=', True)]}" />
             </xpath>
         </field>

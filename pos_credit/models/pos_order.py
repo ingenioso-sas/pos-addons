@@ -321,6 +321,7 @@ class PosOrder(models.Model):
             order.write({'account_move': new_move.id, 'state': 'invoiced'})
             new_move.sudo().with_context(force_company=order.company_id.id).post()
             moves += new_move
+            # TODO: Refactorizar para agregar y reemplazar
             order._apply_invoice_payments()
 
         if not moves:
@@ -347,6 +348,7 @@ class PosOrder(models.Model):
         if not invoice_receivable.reconciled and receivable_account.reconcile:
             payment_receivables = payment_moves.mapped('line_ids').filtered(lambda line: line.account_id == receivable_account)
             (invoice_receivable | payment_receivables).reconcile()
+            pass
 
 
     @api.model

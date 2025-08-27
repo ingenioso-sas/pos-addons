@@ -4,7 +4,7 @@
     "summary": """Pos Credit Management""",
     "category": "Point of Sale",
     "images": [],
-    "version": "13.0.0.0.0",
+    "version": "13.0.1.0.0",
     "application": False,
     "author": "Ingenioso SAS, Anderson Buitron",
     "support": "info@ingenioso.co",
@@ -13,10 +13,13 @@
     "price": 0.00,
     "currency": "COP",
     "depends": ["point_of_sale"],
-    "external_dependencies": {"python": [], "bin": []},
-    "data": ["views/pos_payment_method_views.xml", 
-             "views/assets.xml",
-             "views/pos_order_view.xml"         
+    "external_dependencies": {
+        "python": [], 
+        "bin": []},
+    "data": [
+        "views/pos_payment_method_views.xml",
+        "views/assets.xml",
+        "views/pos_order_view.xml",
     ],
     "demo": [],
     "qweb": [],

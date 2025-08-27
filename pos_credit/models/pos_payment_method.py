@@ -1,27 +1,21 @@
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 
-class PosPaymentMethod(models.Model):
-    _inherit = 'pos.payment.method'    
 
-    
-    outstanding_account_id = fields.Many2one('account.account',
-                                            string='Outstanding Account',
-                                            ondelete='restrict',
-                                            help='Leave empty to use the default account from the company setting.\n'
-                                                'Account used as outstanding account when creating accounting payment records for bank payments.')
-                                                
+class PosPaymentMethod(models.Model):
+    _inherit = 'pos.payment.method'
+
     is_cash_count = fields.Boolean(string='Cash', compute="_compute_is_cash_count", store=True)
 
     cash_journal_id = fields.Many2one('account.journal',
         string='Journal',
         domain=[('type', 'in', ('cash', 'bank'))],
         ondelete='restrict',
-        help='The payment method is of type cash. A cash statement will be automatically generated.\n'
-             'Leave empty to use the receivable account of customer.\n'
-             'Defines the journal where to book the accumulated payments (or individual payment if Identify Customer is true) after closing the session.\n'
-             'For cash journal, we directly write to the default account in the journal via statement lines.\n'
-             'For bank journal, we write to the outstanding account specified in this payment method.\n'
+        help='The payment method is of type cash. A cash statement will be automatically generated.\n' 
+             'Leave empty to use the receivable account of customer.\n' 
+             'Defines the journal where to book the accumulated payments (or individual payment if Identify Customer is true) after closing the session.\n' 
+             'For cash journal, we directly write to the default account in the journal via statement lines.\n' 
+             'For bank journal, we write to the outstanding account specified in this payment method.\n' 
              'Only cash and bank journals are allowed.')
 
     split_transactions = fields.Boolean(
@@ -32,22 +26,11 @@ class PosPaymentMethod(models.Model):
     active = fields.Boolean(default=True)
     type = fields.Selection(selection=[('cash', 'Cash'), ('bank', 'Bank'), ('pay_later', 'Customer Account')], compute="_compute_type")
 
-    # journal_id = fields.Many2one('account.journal',
-    #     string='Journal',
-    #     domain=[('type', 'in', ('cash', 'bank'))],
-    #     ondelete='restrict',
-    #     help='Leave empty to use the receivable account of customer.\n'
-    #          'Defines the journal where to book the accumulated payments (or individual payment if Identify Customer is true) after closing the session.\n'
-    #          'For cash journal, we directly write to the default account in the journal via statement lines.\n'
-    #          'For bank journal, we write to the outstanding account specified in this payment method.\n'
-    #          'Only cash and bank journals are allowed.')
-    
     @api.depends('type')
     def _compute_hide_use_payment_terminal(self):
         no_terminals = not bool(self._fields['use_payment_terminal'].selection(self))
         for payment_method in self:
             payment_method.hide_use_payment_terminal = no_terminals or payment_method.type in ('cash', 'pay_later')
-    
     
     @api.depends('cash_journal_id', 'split_transactions')
     def _compute_type(self):
@@ -71,7 +54,5 @@ class PosPaymentMethod(models.Model):
     def _onchange_is_cash_count(self):
         if not self.is_cash_count:
             self.cash_journal_id = False
-        # else:
-        #     self.use_payment_terminal = False
-        
-  
+        else:
+            self.use_payment_terminal = False
