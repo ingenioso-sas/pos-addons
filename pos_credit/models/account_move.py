@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import fields, models, api
+from odoo import fields, models
 from odoo.tools import float_is_zero
 
 
@@ -30,8 +30,7 @@ class AccountMove(models.Model):
                             'quantity': line.qty if lot.product_id.tracking == 'lot' else 1.0,
                             'uom_name': line.product_uom_id.name,
                             'lot_name': lot.lot_name,
-                        })                
-
+                        })
         return lot_values
 
     def _get_reconciled_vals(self, partial, amount, counterpart_line):
@@ -42,16 +41,15 @@ class AccountMove(models.Model):
             result['pos_payment_name'] = pos_payment.payment_method_id.name
         return result
 
-
     def _compute_amount(self):
-        super(AccountMove, self)._compute_amount()        
-        for inv in self:            
+        super(AccountMove, self)._compute_amount()
+        for inv in self:
             if inv.type in ['out_invoice', 'out_refund'] and inv.pos_order_ids and any(s != 'closed' for s in inv.pos_order_ids.mapped('session_id.state')):
-                amount = 0 
+                amount = 0
                 rounding = 0.0
                 amountTotal = 0
                 amountResidual = 0
-            
+
                 rounding = inv.pos_order_ids.currency_id.rounding
                 amountResidual = inv.amount_residual
                 amountTotal = inv.amount_total
@@ -59,7 +57,6 @@ class AccountMove(models.Model):
                 isPaid = float_is_zero(amountResidual, rounding)
                 if isPaid:
                     inv.invoice_payment_state = 'paid'
-                
                 else:
                     inv.invoice_payment_state = 'not_paid'
 
@@ -108,6 +105,9 @@ class AccountMoveLine(models.Model):
         price_unit = super(AccountMoveLine, self)._stock_account_get_anglo_saxon_price_unit()
         order = self.move_id.pos_order_ids
         if order:
-            price_unit = - order._get_pos_anglo_saxon_price_unit(self.product_id, self.move_id.partner_id.id, self.quantity)
+            price_unit = - order._get_pos_anglo_saxon_price_unit(
+                self.product_id,
+                self.move_id.partner_id.id,
+                self.quantity
+                )
         return price_unit
-  

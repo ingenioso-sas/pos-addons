@@ -1,35 +1,77 @@
-from odoo import api, fields, models, tools
+from odoo import fields, models
 
 
 class PosOrderReport(models.Model):
-    _inherit ="report.pos.order"
+    _inherit = "report.pos.order"
 
     date = fields.Datetime(string='Order Date', readonly=True)
     order_id = fields.Many2one('pos.order', string='Order', readonly=True)
-    partner_id = fields.Many2one('res.partner', string='Customer', readonly=True)
-    product_id = fields.Many2one('product.product', string='Product', readonly=True)
-    product_tmpl_id = fields.Many2one('product.template', string='Product Template', readonly=True)
+    partner_id = fields.Many2one(
+        'res.partner',
+        string='Customer',
+        readonly=True
+        )
+    product_id = fields.Many2one(
+        'product.product',
+        string='Product',
+        readonly=True
+        )
+    product_tmpl_id = fields.Many2one(
+        'product.template',
+        string='Product Template',
+        readonly=True
+        )
     state = fields.Selection(
         [('draft', 'New'), ('paid', 'Paid'), ('done', 'Posted'),
          ('invoiced', 'Invoiced'), ('cancel', 'Cancelled')],
         string='Status')
     user_id = fields.Many2one('res.users', string='User', readonly=True)
     price_total = fields.Float(string='Total Price', readonly=True)
-    price_sub_total = fields.Float(string='Subtotal w/o discount', readonly=True)
+    price_sub_total = fields.Float(
+        string='Subtotal w/o discount',
+        readonly=True
+        )
     total_discount = fields.Float(string='Total Discount', readonly=True)
-    average_price = fields.Float(string='Average Price', readonly=True, group_operator="avg")
-    company_id = fields.Many2one('res.company', string='Company', readonly=True)
+    average_price = fields.Float(
+        string='Average Price',
+        readonly=True,
+        group_operator="avg"
+        )
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company',
+        readonly=True
+        )
     nbr_lines = fields.Integer(string='Sale Line Count', readonly=True)
     product_qty = fields.Integer(string='Product Quantity', readonly=True)
     journal_id = fields.Many2one('account.journal', string='Journal')
     delay_validation = fields.Integer(string='Delay Validation')
-    product_categ_id = fields.Many2one('product.category', string='Product Category', readonly=True)
+    product_categ_id = fields.Many2one(
+        'product.category',
+        string='Product Category',
+        readonly=True
+        )
     invoiced = fields.Boolean(readonly=True)
-    config_id = fields.Many2one('pos.config', string='Point of Sale', readonly=True)
-    pos_categ_id = fields.Many2one('pos.category', string='PoS Category', readonly=True)
-    pricelist_id = fields.Many2one('product.pricelist', string='Pricelist', readonly=True)
-    session_id = fields.Many2one('pos.session', string='Session', readonly=True)
-
+    config_id = fields.Many2one(
+        'pos.config',
+        string='Point of Sale',
+        readonly=True
+        )
+    pos_categ_id = fields.Many2one(
+        'pos.category',
+        string='PoS Category',
+        readonly=True
+        )
+    pricelist_id = fields.Many2one(
+        'product.pricelist',
+        string='Pricelist',
+        readonly=True
+        )
+    session_id = fields.Many2one(
+        'pos.session',
+        string='Session',
+        readonly=True
+        )
 
     def _select(self):
         return """

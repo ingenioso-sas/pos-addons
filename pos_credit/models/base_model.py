@@ -1,13 +1,15 @@
-from odoo import api, fields, models, _
+from odoo import models
+
 
 class BaseModel(models.AbstractModel):
     _name = 'base.model'
-    _inherit ='base'
-    
+    _inherit = 'base'
+
     def with_company(self, company):
         """ with_company(company)
 
-        Return a new version of this recordset with a modified context, such that::
+        Return a new version of this recordset with a modified context,
+        such that::
 
             result.env.company = company
             result.env.companies = self.env.companies | company

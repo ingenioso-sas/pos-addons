@@ -1,22 +1,15 @@
 # -*- coding: utf-8 -*-
-
-import logging
-from datetime import timedelta
-from functools import partial
 from itertools import groupby
-
-import psycopg2
 import pytz
 import re
 
-from odoo import api, fields, models, tools, _
+from odoo import api, fields, models, _
 from odoo.tools import float_is_zero, float_round, float_repr, float_compare
 from odoo.exceptions import ValidationError, UserError
 
 
 class PosOrder(models.Model):
     _inherit = 'pos.order'
-
 
     def _prepare_invoice_lines(self):
         invoice_lines = []
@@ -37,35 +30,61 @@ class PosOrder(models.Model):
         return invoice_lines
 
     def _get_pos_anglo_saxon_price_unit(self, product, partner_id, quantity):
-            moves = self.filtered(lambda o: o.partner_id.id == partner_id)\
-                .mapped('picking_ids.move_lines')\
-                .filtered(lambda m: m.product_id.id == product.id)\
-                .sorted(lambda x: x.date)
-            price_unit = product._compute_average_price(0, quantity, moves)
-            return - price_unit
-    
+        moves = self.filtered(lambda o: o.partner_id.id == partner_id)\
+            .mapped('picking_ids.move_lines')\
+            .filtered(lambda m: m.product_id.id == product.id)\
+            .sorted(lambda x: x.date)
+        price_unit = product._compute_average_price(0, quantity, moves)
+        return - price_unit
 
     margin = fields.Monetary(string="Margin", compute='_compute_margin')
-    margin_percent = fields.Float(string="Margin (%)", compute='_compute_margin', digits=(12, 4))
-    is_total_cost_computed = fields.Boolean(compute='_compute_is_total_cost_computed',
-                                            help="Allows to know if all the total cost of the order lines have already been computed")
+    margin_percent = fields.Float(
+        string="Margin (%)",
+        compute='_compute_margin',
+        digits=(12, 4)
+        )
+    is_total_cost_computed = fields.Boolean(
+        compute='_compute_is_total_cost_computed',
+        help="Allows to know if all the total cost of the order lines have already been computed"
+        )
 
-    picking_ids = fields.Many2one('stock.picking', string='Picking', readonly=True, copy=False)
+    picking_ids = fields.Many2one(
+        'stock.picking',
+        string='Picking',
+        readonly=True, copy=False
+        )
     picking_count = fields.Integer(compute='_compute_picking_count')
     failed_pickings = fields.Boolean(compute='_compute_picking_count')
-    procurement_group_id = fields.Many2one('procurement.group', 'Procurement Group', copy=False)                                            
-    
+    procurement_group_id = fields.Many2one(
+        'procurement.group',
+        'Procurement Group',
+        copy=False
+        )
+
     to_ship = fields.Boolean('To ship')
     is_tipped = fields.Boolean('Is this already tipped?', readonly=True)
     tip_amount = fields.Float(string='Tip Amount', digits=0, readonly=True)
-    refund_orders_count = fields.Integer('Number of Refund Orders', compute='_compute_refund_related_fields')
+    refund_orders_count = fields.Integer(
+        'Number of Refund Orders',
+        compute='_compute_refund_related_fields'
+        )
     is_refunded = fields.Boolean(compute='_compute_refund_related_fields')
-    refunded_order_ids = fields.Many2many('pos.order', compute='_compute_refund_related_fields')
-    refunded_order_ids = fields.Many2many('pos.order', compute='_compute_refund_related_fields')
-    has_refundable_lines = fields.Boolean('Has Refundable Lines', compute='_compute_has_refundable_lines')
-    refunded_orders_count = fields.Integer(compute='_compute_refund_related_fields')
+    refunded_order_ids = fields.Many2many(
+        'pos.order',
+        compute='_compute_refund_related_fields'
+        )
+    refunded_order_ids = fields.Many2many(
+        'pos.order',
+        compute='_compute_refund_related_fields'
+        )
+    has_refundable_lines = fields.Boolean(
+        'Has Refundable Lines',
+        compute='_compute_has_refundable_lines'
+        )
+    refunded_orders_count = fields.Integer(
+        compute='_compute_refund_related_fields'
+        )
 
-    
     @api.depends('lines.refund_orderline_ids', 'lines.refunded_orderline_id')
     def _compute_refund_related_fields(self):
         for order in self:
@@ -73,22 +92,19 @@ class PosOrder(models.Model):
             order.is_refunded = order.refund_orders_count > 0
             order.refunded_order_ids = order.mapped('lines.refunded_orderline_id.order_id')
             order.refunded_orders_count = len(order.refunded_order_ids)
-    
-    
+
     @api.depends('lines.refunded_qty', 'lines.qty')
     def _compute_has_refundable_lines(self):
         digits = self.env['decimal.precision'].precision_get('Product Unit of Measure')
         for order in self:
             order.has_refundable_lines = any([float_compare(line.qty, line.refunded_qty, digits) > 0 for line in order.lines])
 
-    
     @api.depends('picking_ids', 'picking_ids.state')
     def _compute_picking_count(self):
         for order in self:
             order.picking_count = len(order.picking_ids)
             order.failed_pickings = bool(order.picking_ids.filtered(lambda p: p.state != 'done'))
 
-    
     @api.depends('lines.is_total_cost_computed')
     def _compute_is_total_cost_computed(self):
         for order in self:
@@ -110,8 +126,10 @@ class PosOrder(models.Model):
 
     def _compute_total_cost_at_session_closing(self, stock_moves):
         """
-        Compute the margin at the end of the session. This method should be called to compute the remaining lines margin
-        containing a storable product with a fifo/avco cost method and then compute the order margin
+        Compute the margin at the end of the session.
+        This method should be calledto compute the remaining lines
+        margin containing a storable product with a fifo/avco cost
+        method and then compute the order margin
         """
         for order in self:
             storable_fifo_avco_lines = order.lines.filtered(lambda l: l._is_product_storable_fifo_avco())
@@ -128,7 +146,6 @@ class PosOrder(models.Model):
                 order.margin = 0
                 order.margin_percent = 0
 
-    
     def _unlink_except_draft_or_cancel(self):
         for pos_order in self.filtered(lambda pos_order: pos_order.state not in ['draft', 'cancel']):
             raise UserError(_('In order to delete a sale, it must be new or cancelled.'))
@@ -138,7 +155,6 @@ class PosOrder(models.Model):
         for pos_order in self.filtered(lambda pos_order: pos_order.state not in ['draft', 'cancel']):
             raise UserError(_('In order to delete a sale, it must be new or cancelled.'))
         return super(PosOrder, self).unlink()
-
 
     def write(self, vals):
         for order in self:
@@ -158,7 +174,7 @@ class PosOrder(models.Model):
         action['context'] = {}
         action['domain'] = [('id', 'in', self.picking_ids.ids)]
         return action
-    
+
     def action_view_refund_orders(self):
         return {
             'name': _('Refund Orders'),
@@ -176,7 +192,6 @@ class PosOrder(models.Model):
             'type': 'ir.actions.act_window',
             'domain': [('id', 'in', self.refunded_order_ids.ids)],
         }
-  
 
     def action_pos_order_paid(self):
         self.ensure_one()
@@ -187,7 +202,11 @@ class PosOrder(models.Model):
            and not any(p.payment_method_id.is_cash_count for p in self.payment_ids):
             total = self.amount_total
         else:
-            total = float_round(self.amount_total, precision_rounding=self.config_id.rounding_method.rounding, rounding_method=self.config_id.rounding_method.rounding_method)
+            total = float_round(
+                self.amount_total,
+                precision_rounding=self.config_id.rounding_method.rounding,
+                rounding_method=self.config_id.rounding_method.rounding_method
+                )
 
         isPaid = float_is_zero(total - self.amount_paid, precision_rounding=self.currency_id.rounding)
 
@@ -207,14 +226,13 @@ class PosOrder(models.Model):
         self.write({'state': 'paid'})
         return True
 
-
     def _prepare_invoice_vals(self):
         self.ensure_one()
         timezone = pytz.timezone(self._context.get('tz') or self.env.user.tz or 'UTC')
         vals = {
             'invoice_payment_ref': self.name,
             'invoice_origin': self.name,
-            #'journal_id': self.session_id.config_id.invoice_journal_id.id,
+            # 'journal_id': self.session_id.config_id.invoice_journal_id.id,
             'journal_id': self.session_id.config_id.journal_id.id,
             'type': 'out_invoice' if self.amount_total >= 0 else 'out_refund',
             'ref': self.name,
@@ -235,15 +253,16 @@ class PosOrder(models.Model):
             vals.update({'narration': self.note})
         return vals
 
-
     def _create_invoice(self, move_vals):
         self.ensure_one()
-        new_move = self.env['account.move'].sudo().with_company(self.company_id).with_context(default_move_type=move_vals['type']).create(move_vals)        
+        new_move = self.env['account.move'].sudo().with_company(self.company_id).with_context(default_move_type=move_vals['type']).create(move_vals)
         message = _("This invoice has been created from the point of sale session: <a href=# data-oe-model=pos.order data-oe-id=%d>%s</a>") % (self.id, self.name)
         new_move.message_post(body=message)
         if self.config_id.cash_rounding:
-            rounding_applied = float_round(self.amount_paid - self.amount_total,
-                                           precision_rounding=new_move.currency_id.rounding)
+            rounding_applied = float_round(
+                self.amount_paid - self.amount_total,
+                precision_rounding=new_move.currency_id.rounding
+                )
             rounding_line = new_move.line_ids.filtered(lambda line: line.is_rounding_line)
             if rounding_line and rounding_line.debit > 0:
                 rounding_line_difference = rounding_line.debit + rounding_applied
@@ -300,7 +319,7 @@ class PosOrder(models.Model):
                     'credit': existing_terms_line_new_val < 0.0 and -existing_terms_line_new_val or 0.0,
                 })
 
-                new_move._recompute_payment_terms_lines()        
+                new_move._recompute_payment_terms_lines()
         return new_move
 
     def action_pos_order_invoice(self):
@@ -350,7 +369,6 @@ class PosOrder(models.Model):
             (invoice_receivable | payment_receivables).reconcile()
             pass
 
-
     @api.model
     def create_from_ui(self, orders, draft=False):
         """ Create and update Orders from the frontend PoS application.
@@ -392,7 +410,11 @@ class PosOrder(models.Model):
                 else:
                     destination_id = picking_type.default_location_dest_id.id
 
-                pickings = self.env['stock.picking']._create_picking_from_pos_order_lines(destination_id, self.lines, picking_type, self.partner_id)
+                pickings = self.env['stock.picking']._create_picking_from_pos_order_lines(
+                    destination_id,
+                    self.lines, picking_type,
+                    self.partner_id
+                    )
                 pickings.write({'pos_session_id': self.session_id.id, 'pos_order_id': self.id, 'origin': self.name})
 
     def _prepare_refund_values(self, current_session):
@@ -419,9 +441,9 @@ class PosOrder(models.Model):
             if not current_session:
                 raise UserError(_('To return product(s), you need to open a session in the POS %s') % order.session_id.config_id.display_name)
             refund_order = order.copy(
-                #super(PosOrder,self)._prepare_refund_values(current_session)
+                # super(PosOrder,self)._prepare_refund_values(current_session)
                 order._prepare_refund_values(current_session)
-            )            
+            )
             for line in order.lines:
                 PosOrderLineLot = self.env['pos.pack.operation.lot']
                 for pack_lot in line.pack_lot_ids:
@@ -464,7 +486,6 @@ class PosOrder(models.Model):
 
         mail = self.env['mail.mail'].sudo().create(mail_values)
         mail.send()
-
 
     def _add_mail_attachment(self, name, ticket):
         filename = 'Receipt-' + name + '.jpg'
@@ -559,7 +580,6 @@ class PosOrder(models.Model):
         """
         return self.mapped(self._export_for_ui) if self else []
 
-    
     def with_company(self, company):
         """ with_company(company)
 
@@ -593,26 +613,44 @@ class PosOrder(models.Model):
         allowed_company_ids.insert(0, company_id)
 
         return self.with_context(allowed_company_ids=allowed_company_ids)
-    
 
 
-class PosOrderLine(models.Model):   
+class PosOrderLine(models.Model):
     _inherit = 'pos.order.line'
 
     margin = fields.Monetary(string="Margin", compute='_compute_margin')
-    margin_percent = fields.Float(string="Margin (%)", compute='_compute_margin', digits=(12, 4))
-    total_cost = fields.Float(string='Total cost', digits='Product Price', readonly=True)
-    is_total_cost_computed = fields.Boolean(help="Allows to know if the total cost has already been computed or not")
+    margin_percent = fields.Float(
+        string="Margin (%)",
+        compute='_compute_margin',
+        digits=(12, 4)
+        )
+    total_cost = fields.Float(
+        string='Total cost',
+        digits='Product Price',
+        readonly=True
+        )
+    is_total_cost_computed = fields.Boolean(
+        help="Allows to know if the total cost has already been computed or not")
 
     full_product_name = fields.Char('Full Product Name')
-    customer_note = fields.Char('Customer Note', help='This is a note destined to the customer')
-    refund_orderline_ids = fields.One2many('pos.order.line', 'refunded_orderline_id', 'Refund Order Lines',
-                                           help='Orderlines in this field are the lines that refunded this orderline.')
-    refunded_orderline_id = fields.Many2one('pos.order.line', 'Refunded Order Line',
-                                            help='If this orderline is a refund, then the refunded orderline is specified in this field.')
-    refunded_qty = fields.Float('Refunded Quantity', compute='_compute_refund_qty',
-                                help='Number of items refunded in this orderline.')
-
+    customer_note = fields.Char(
+        'Customer Note',
+        help='This is a note destined to the customer'
+        )
+    refund_orderline_ids = fields.One2many(
+        'pos.order.line',
+        'refunded_orderline_id',
+        'Refund Order Lines',
+        help='Orderlines in this field are the lines that refunded this orderline.'
+        )
+    refunded_orderline_id = fields.Many2one(
+        'pos.order.line', 'Refunded Order Line',
+        help='If this orderline is a refund, then the refunded orderline is specified in this field.'
+        )
+    refunded_qty = fields.Float(
+        'Refunded Quantity',
+        compute='_compute_refund_qty',
+        help='Number of items refunded in this orderline.')
 
     @api.depends('refund_orderline_ids')
     def _compute_refund_qty(self):
@@ -659,7 +697,6 @@ class PosOrderLine(models.Model):
             self.price_unit = self.env['account.tax']._fix_tax_included_price_company(price, self.product_id.taxes_id, tax_ids_after_fiscal_position, self.company_id)
             self._onchange_qty()
 
-    
     @api.onchange('qty', 'discount', 'price_unit', 'tax_ids')
     def _onchange_qty(self):
         if self.product_id:
@@ -671,7 +708,6 @@ class PosOrderLine(models.Model):
                 taxes = self.product_id.taxes_id.compute_all(price, self.order_id.pricelist_id.currency_id, self.qty, product=self.product_id, partner=False)
                 self.price_subtotal = taxes['total_excluded']
                 self.price_subtotal_incl = taxes['total_included']
-
 
     def _export_for_ui(self, orderline):
         return {
@@ -727,7 +763,7 @@ class PosOrderLine(models.Model):
         procurements = []
         for line in self:
             line = line.with_company(line.company_id)
-            if not line.product_id.type in ('consu','product'):
+            if not line.product_id.type in ('consu', 'product'):
                 continue
 
             group_id = line._get_procurement_group()
@@ -812,7 +848,16 @@ class AccountCashRounding(models.Model):
 
     @api.constrains('rounding', 'rounding_method', 'strategy')
     def _check_session_state(self):
-        open_session = self.env['pos.session'].search([('config_id.rounding_method', 'in', self.ids), ('state', '!=', 'closed')], limit=1)
+        open_session = self.env['pos.session'].search(
+            [
+                ('config_id.rounding_method', 'in', self.ids),
+                ('state', '!=', 'closed')
+            ],
+            limit=1)
         if open_session:
             raise ValidationError(
-                _("You are not allowed to change the cash rounding configuration while a pos session using it is already opened."))
+                _(
+                    "You are not allowed to change the cash rounding"
+                    "configuration while a pos session"
+                    "using it is already opened."
+                ))

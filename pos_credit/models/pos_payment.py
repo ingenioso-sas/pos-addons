@@ -1,11 +1,15 @@
-from odoo import api, fields, models, _
+from odoo import fields, models, _
 from odoo.tools import float_is_zero
 
 
 class PosPayment(models.Model):
     _inherit = "pos.payment"
 
-    account_move_id = fields.Many2one('account.move', string='Journal Entry', readonly=True, copy=False)
+    account_move_id = fields.Many2one(
+        'account.move',
+        string='Journal Entry',
+        readonly=True, copy=False
+        )
 
     def _export_for_ui(self, payment):
         # This is a copy of the base method, if you are inheriting, you should call super().
@@ -68,4 +72,3 @@ class PosPayment(models.Model):
             payment_move.post()
 
         return result
-

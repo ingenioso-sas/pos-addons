@@ -1,8 +1,9 @@
-from odoo import api, fields, models
+from odoo import api, fields, models, _
+
 
 class AccountPayment(models.Model):
     _inherit = "account.payment"
-    #_inherits = {'account.move': 'ref'}
+    # _inherits = {'account.move': 'ref'}
 
     # --------------------------------------
     # Business Fields
@@ -10,23 +11,30 @@ class AccountPayment(models.Model):
 
     move_id = fields.Many2one(
         comodel_name='account.move',
-        #string='Journal Entry', required=True, readonly=True, ondelete='cascade',
+        # string='Journal Entry', required=True, readonly=True, ondelete='cascade',
         string='Journal Entry', readonly=True, ondelete='cascade',
         check_company=True)
 
-
-    is_internal_transfer = fields.Boolean(string="Internal Transfer",
-        readonly=False, store=True,
+    is_internal_transfer = fields.Boolean(
+        string="Internal Transfer",
+        readonly=False,
+        store=True,
         tracking=True,
-        compute="_compute_is_internal_transfer")
+        compute="_compute_is_internal_transfer"
+        )
 
-    paired_internal_transfer_payment_id = fields.Many2one('account.payment',
-        help="When an internal transfer is posted, a paired payment is created. "
-        "They are cross referenced trough this field")
-
+    paired_internal_transfer_payment_id = fields.Many2one(
+        'account.payment',
+        help="When an internal transfer is posted, a paired payment is created."
+        "They are cross referenced trough this field"
+        )
 
     pos_payment_method_id = fields.Many2one('pos.payment.method', "POS Payment Method")
-    force_outstanding_account_id = fields.Many2one("account.account", "Forced Outstanding Account", check_company=True)
+    force_outstanding_account_id = fields.Many2one(
+        "account.account",
+        "Forced Outstanding Account",
+        check_company=True
+        )
     pos_session_id = fields.Many2one('pos.session', "POS Session")
 
     ref = fields.Char(string='Reference', copy=False, store=True)
@@ -40,32 +48,28 @@ class AccountPayment(models.Model):
         """When force_outstanding_account_id is set, we use it as the outstanding_account_id."""
         super()._compute_outstanding_account_id()
         for payment in self:
-            if payment.force_outstanding_account_id:
+            if payment.force_outstanding_account_id:                
                 payment.outstanding_account_id = payment.force_outstanding_account_id
 
-    
     # -----------------------------------
-    # METHODS COMPUTE 
+    # METHODS COMPUTE
     # -----------------------------------
     @api.depends('partner_id', 'destination_account_id', 'journal_id')
     def _compute_is_internal_transfer(self):
         for payment in self:
             payment.is_internal_transfer = payment.partner_id and payment.partner_id == payment.journal_id.company_id.partner_id
-    
 
     # -----------------------------------
     # BUSINESS METHODS
     # -----------------------------------
     def action_post(self):
         ''' draft -> posted '''
-        #self.move_id._post(soft=False)
+        # self.move_id._post(soft=False)
         self.move_id.post()
 
         self.filtered(
           lambda pay: pay.is_internal_transfer and not pay.paired_internal_transfer_payment_id
              )._create_paired_internal_transfer_payment()
-
-
 
     # -------------------------------------------------------------------------
     # SYNCHRONIZATION account.payment <-> account.move
@@ -73,7 +77,8 @@ class AccountPayment(models.Model):
 
     def _create_paired_internal_transfer_payment(self):
         ''' When an internal transfer is posted, a paired payment is created
-        with opposite payment_type and swapped journal_id & destination_journal_id.
+        with opposite payment_type and swapped journal_id &
+        destination_journal_id.
         Both payments liquidity transfer lines are then reconciled.
         '''
         for payment in self:
@@ -106,7 +111,6 @@ class AccountPayment(models.Model):
     #     compute='_compute_outstanding_account_id',
     #     check_company=True)
 
-    
     # @api.depends('journal_id', 'payment_type', 'payment_method_line_id')
     # def _compute_outstanding_account_id(self):
     #     for pay in self:
@@ -119,6 +123,5 @@ class AccountPayment(models.Model):
     #         else:
     #             pay.outstanding_account_id = False
 
-    
     # payment_reference = fields.Char(string="Payment Reference", copy=False, tracking=True,
     #     help="Reference of the document used to issue this payment. Eg. check number, file name, etc.")

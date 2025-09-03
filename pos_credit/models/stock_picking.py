@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from odoo import api,fields, models
+from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools import float_is_zero, float_compare
 
 from itertools import groupby
 
+
 class StockPicking(models.Model):
-    _inherit='stock.picking'
+    _inherit = 'stock.picking'
 
     pos_session_id = fields.Many2one('pos.session')
     pos_order_id = fields.Many2one('pos.order')
@@ -21,7 +22,6 @@ class StockPicking(models.Model):
             'location_id': location_id,
             'location_dest_id': location_dest_id,
         }
-
 
     @api.model
     def _create_picking_from_pos_order_lines(self, location_dest_id, lines, picking_type, partner=False):
@@ -98,11 +98,12 @@ class StockPicking(models.Model):
         pickings = self.filtered(lambda p: p.picking_type_id != p.picking_type_id.warehouse_id.pos_type_id)
         return super(StockPicking, pickings)._send_confirmation_email()
 
-    
+
 class ProcurementGroup(models.Model):
     _inherit = 'procurement.group'
 
     pos_order_id = fields.Many2one('pos.order', 'POS Order')
+
 
 class StockMove(models.Model):
     _inherit = 'stock.move'
@@ -121,7 +122,7 @@ class StockMove(models.Model):
         self.ensure_one()
         for move_line in self.move_line_ids:
             move_line.qty_done = move_line.product_uom_qty
-        #if float_compare(self.product_uom_qty, self.quantity_done, precision_rounding=self.product_uom.rounding) > 0:
+        # if float_compare(self.product_uom_qty, self.quantity_done, precision_rounding=self.product_uom.rounding) > 0:
         if float_compare(self.product_uom_qty, self.quantity_done, precision_rounding=self.product_uom.rounding) < 0:
             remaining_qty = self.product_uom_qty - self.quantity_done
             ml_vals = self._prepare_move_line_vals()

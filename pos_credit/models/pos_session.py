@@ -1,21 +1,27 @@
 # -*- coding: utf-8 -*-
+from odoo import fields, models
 
-from collections import defaultdict
-from odoo.tools import float_is_zero, float_compare
-from odoo import api, fields, models, _
 
 class PosSession(models.Model):
-    _inherit = 'pos.session'    
+    _inherit = 'pos.session'
 
     opening_notes = fields.Text(string="Opening Notes")
 
-    cash_real_difference = fields.Monetary(string='Difference', readonly=True)
-    cash_real_transaction = fields.Monetary(string='Transaction', readonly=True)
+    cash_real_difference = fields.Monetary(
+        string='Difference',
+        readonly=True
+        )
+    cash_real_transaction = fields.Monetary(
+        string='Transaction',
+        readonly=True
+        )
     cash_real_expected = fields.Monetary(string="Expected", readonly=True)
 
     failed_pickings = fields.Boolean(compute='_compute_picking_count')
 
-    update_stock_at_closing = fields.Boolean('Stock should be updated at closing')
+    update_stock_at_closing = fields.Boolean(
+        'Stock should be updated at closing'
+        )
 
     def _compute_picking_count(self):
         for pos in self:
